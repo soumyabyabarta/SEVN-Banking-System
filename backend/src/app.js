@@ -13,7 +13,7 @@ app.use(
         origin: [
             "http://localhost:5173", // Keep for local development
             "https://sevn-banking-app.onrender.com", 
-            "https://sevnbank.netlify.app/"
+            "https://sevnbank.netlify.app"
     ],
         credentials: true,
     })
