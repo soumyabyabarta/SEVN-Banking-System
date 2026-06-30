@@ -83,9 +83,6 @@ async function createTransaction(req, res) {
         transaction = await transactionModel.findOneAndUpdate(
             { _id: transaction._id },
             { status: "COMPLETED" },
-            
-            /*{ session, new: true }*/
-
             { session, returnDocument: 'after' }
         );
 
@@ -100,10 +97,11 @@ async function createTransaction(req, res) {
         session.endSession();
     }
 
-    try {
-        await emailService.sendTransactionEmail(req.user.email, req.user.name, amount, toAccount);
-    } catch (emailError) {
-        console.error("Email notification failed to send:", emailError);
+    // FIRE AND FORGET EMAIL NOTIFICATION
+    // This runs asynchronously in the background so the user gets an instant response.
+    if (req.user && req.user.email) {
+        emailService.sendTransactionEmail(req.user.email, req.user.name, amount, toAccount)
+            .catch(emailError => console.error("Background email notification failed:", emailError.message));
     }
 
     return res.status(201).json({
