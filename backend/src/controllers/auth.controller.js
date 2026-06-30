@@ -5,15 +5,22 @@ const jwt = require("jsonwebtoken");
 const emailService = require("../services/email.service");
 const tokenBlackListModel = require("../models/blackList.model");
 const accountModel = require("../models/account.model");
-const transactionModel = require("../models/transaction.model"); // Added Transaction Model
-const mongoose = require("mongoose");
+const transactionModel = require("../models/transaction.model"); 
 const ledgerModel = require("../models/ledger.model");
+const mongoose = require("mongoose");
+
+// Standardized Cookie Options for Cross-Origin (Netlify Frontend -> Render Backend)
+const cookieOptions = {
+    httpOnly: true,
+    secure: true,      // Must be true for cross-origin
+    sameSite: "none",  // Must be "none" to allow third-party cookies across domains
+    maxAge: 3 * 24 * 60 * 60 * 1000 // 3 days
+};
+
 /**
  * - USER REGISTER CONTROLLER
  * - POST /api/auth/register
  */
-// backend/src/controllers/auth.controller.js
-
 async function userRegisterController(req, res) {
     try {
         const { email, name, password } = req.body;
@@ -37,7 +44,7 @@ async function userRegisterController(req, res) {
             user: user._id
         });
 
-      // 3. Inject Welcome Bonus Safely (Transaction + Ledger)
+        // 3. Inject Welcome Bonus Safely (Transaction + Ledger)
         try {
             const systemAccountId = "111111111111111111111111"; // System Bank ID
 
@@ -69,17 +76,11 @@ async function userRegisterController(req, res) {
         } catch (txError) {
             console.error("Welcome Bonus Error:", txError.message);
         }
+
         // 4. Generate Token
         const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "3d" });
-
-        // 5. Secure Cookie Configuration
-        const cookieOptions = {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-            maxAge: 3 * 24 * 60 * 60 * 1000 
-        };
-
+        
+        // 5. Apply Secure Cookie Configuration
         res.cookie("token", token, cookieOptions);
         
         res.status(201).json({
@@ -109,43 +110,41 @@ async function userRegisterController(req, res) {
  * - POST /api/auth/login
  */
 async function userLoginController(req, res) {
-    const { email, password } = req.body;
+    try {
+        const { email, password } = req.body;
 
-    const user = await userModel.findOne({ email }).select("+password");
-    
-    if (!user) {
-        return res.status(401).json({
-            message: "Invalid email or password"
+        const user = await userModel.findOne({ email }).select("+password");
+        
+        if (!user) {
+            return res.status(401).json({
+                message: "Invalid email or password"
+            });
+        }
+
+        const isValidPassword = await user.comparePassword(password);
+
+        if (!isValidPassword) {
+            return res.status(401).json({
+                message: "Invalid email or password"
+            });
+        }
+
+        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "3d" });
+
+        res.cookie("token", token, cookieOptions);
+        
+        res.status(200).json({
+            user: {
+                _id: user._id,
+                email: user.email,
+                name: user.name
+            },
+            token
         });
+    } catch (error) {
+        console.error("Login Server Error:", error);
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
     }
-
-    const isValidPassword = await user.comparePassword(password);
-
-    if (!isValidPassword) {
-        return res.status(401).json({
-            message: "Invalid email or password"
-        });
-    }
-
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "3d" });
-
-    const cookieOptions = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 3 * 24 * 60 * 60 * 1000 
-    };
-
-    res.cookie("token", token, cookieOptions);
-    
-    res.status(200).json({
-        user: {
-            _id: user._id,
-            email: user.email,
-            name: user.name
-        },
-        token
-    });
 }
 
 /**
@@ -153,27 +152,33 @@ async function userLoginController(req, res) {
  * - POST /api/auth/logout
  */
 async function userLogoutController(req, res) {
-    const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
+    try {
+        const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
 
-    if (!token) {
-        return res.status(200).json({
+        if (!token) {
+            return res.status(200).json({
+                message: "User logged out successfully"
+            });
+        }
+
+        await tokenBlackListModel.create({
+            token: token
+        });
+
+        // Browsers require the exact same path and domain parameters to clear the cookie
+        res.clearCookie("token", {
+            httpOnly: true,
+            secure: true,
+            sameSite: "none"
+        });
+
+        res.status(200).json({
             message: "User logged out successfully"
         });
+    } catch (error) {
+        console.error("Logout Server Error:", error);
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
     }
-
-    await tokenBlackListModel.create({
-        token: token
-    });
-
-    res.clearCookie("token", {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict"
-    });
-
-    res.status(200).json({
-        message: "User logged out successfully"
-    });
 }
 
 /**
