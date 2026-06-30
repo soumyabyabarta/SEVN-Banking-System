@@ -46,7 +46,8 @@ const frontendDistPath = path.join(__dirname, "../../frontend/dist");
 app.use(express.static(frontendDistPath));
 
 // Catch-all route: For any request that doesn't match an API route, send back React's index.html
-app.get("*", (req, res) => {
+/*app.get("*", (req, res) => { */
+app.get(/(.*)/, (req, res) => {
     res.sendFile(path.join(frontendDistPath, "index.html"));
 });
 
