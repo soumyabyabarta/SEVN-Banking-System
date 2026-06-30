@@ -1,0 +1,12 @@
+<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="stylish_sevn_gradient" x1="10" y1="10" x2="90" y2="90" gradientUnits="userSpaceOnUse">
+      <stop stopColor="#B7F569"/>
+      <stop offset="1" stopColor="#1A5A44"/>
+    </linearGradient>
+  </defs>
+  <path d="M10 10 L80 10 C85 10 90 15 90 20 L60 80 C57 85 52 90 47 90 H20 L40 60 L10 10 Z" fill="url(#stylish_sevn_gradient)" />
+  <path d="M10 10 L40 60 L10 10 Z" fill="#ffffff" fillOpacity="0.05" />
+  <path d="M40 60 L60 80 C57 85 52 90 47 90 H20 L40 60 Z" fill="#000000" fillOpacity="0.1" />
+  <path d="M80 10 C85 10 90 15 90 20 L60 80 L80 10 Z" fill="#000000" fillOpacity="0.05" />
+</svg>
