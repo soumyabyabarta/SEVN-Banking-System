@@ -10,7 +10,11 @@ const app = express();
 // CORS Configuration
 app.use(
     cors({
-        origin: "http://localhost:5173", // Keep for local development
+        origin: [
+            "http://localhost:5173", // Keep for local development
+            "https://sevn-banking-app.onrender.com", 
+            "https://sevnbank.netlify.app/"
+    ],
         credentials: true,
     })
 );
